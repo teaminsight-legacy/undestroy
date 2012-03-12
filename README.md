@@ -23,19 +23,21 @@ Or install it yourself as:
 
 ## Usage
 
-To activate Undestroy on a model, simply call the `undestroyable` method
+To activate Undestroy on a model, simply call the `undestroy` method
 on the class like so:
 
-    class Person < ActiveRecord::Base
-      undestroyable
-    end
+```ruby
+class Person < ActiveRecord::Base
+  undestroy
+end
+```
 
 This method also can accept an options hash to further customize
 Undestroy to your needs.
 
-* `:table_name`:  use this table for archiving
-* `:class_name`:  use this AR model for archiving
-* `:connection`:  use this connection for archiving
+* `:archive_table`:  use this table for archiving
+* `:archive_klass`:  use this AR model for archiving
+* `:archive_connection`:  use this connection for archiving
 * `:fields`:  Specify a hash of fields to values for additional fields
   you would like to include on the archive table -- lambdas will be
   called with the instance being destroyed and returned value will be
@@ -43,15 +45,44 @@ Undestroy to your needs.
 * `:migrate`:  Should Undestroy migrate the archive table together with
   this model's table (default: true)
 
-    $ person = Person.find(1)
-    $ person.destroy
-    # => Inserts person data into archive_people table
-    # => Deletes person data from people table
+```
+$ person = Person.find(1)
+$ person.destroy
+# => Inserts person data into archive_people table
+# => Deletes person data from people table
+```
 
 ## Stucture
 
 This is the basic class structure of this gem.  It was designed to be
 modular and easy to tailor to your specific needs.
+
+### `Config`
+
+Holds configuration information for Undestroy.  An instance is created
+globally and serves as defaults for each model using Undestroy.  Each
+model also creates its own instance of Config allowing any model to
+override any of the globally configurable options.
+
+To change global defaults use this configuration DSL:
+
+```ruby
+Undestroy::Config.configure do |config|
+  config.connection = "#{Rails.env}_archive"
+  config.fields = {
+    :deleted_at => proc { Time.now },
+    :deleted_by_id => proc { User.current.id if User.current }
+  }
+end
+```
+
+This sets the default connection to the Rails.env followed by an
+"_archive".  An entry matching this format must exist in database.yml in
+order for this to function properly.  This also sets the default fields
+to include a deleted_by_id which automatically sets the current user as
+the deleter of the record.
+
+Possible configuration options are listed in the _Usage_ section above.
 
 ### `Archive`
 
