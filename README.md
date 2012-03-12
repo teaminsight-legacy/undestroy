@@ -82,6 +82,11 @@ class simply uses the AR interface to create and delete the appropriate
 records.  This can be subclassed to provide enhanced performance or
 customized behavior for your situation.
 
+Initialized with:
+
+* `:fields`: Hash of field names to values to be stored in this table
+* `:klass`: Target AR model which will be created with these attributes
+
 ## Contributing
 
 1. Fork it
