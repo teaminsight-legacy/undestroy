@@ -35,15 +35,27 @@ end
 This method also can accept an options hash to further customize
 Undestroy to your needs.
 
-* `:archive_table`:  use this table for archiving
-* `:archive_klass`:  use this AR model for archiving
-* `:archive_connection`:  use this connection for archiving
+* `:table_name`:  use this table for archiving (Defaults to the
+  source class's table_name prefixed with "archive_".  If
+  archive_connection is set to a connection other than the source class
+  the prefix will not be added).
+* `:connection`:  use this db connection for archiving
 * `:fields`:  Specify a hash of fields to values for additional fields
   you would like to include on the archive table -- lambdas will be
   called with the instance being destroyed and returned value will be
   used (default: `{ :deleted_at => proc { |instance| Time.now } }`).
 * `:migrate`:  Should Undestroy migrate the archive table together with
   this model's table (default: true)
+
+Internal Options (for advanced users):
+
+* `:source_class`:  the AR model of the originating data.  Set
+  automatically to class `undestroy` method is called on.
+* `:target_class`:  use this AR model for archiving.  Set automatically
+  to dynamically generated class based on `archive_*` options.
+* `internals`: internal classes to use for archival process.  Possible
+  keys are `:archive`, `:transfer` and `:restore`.  Defaults to
+  corresponding internal classes.  Customize to your heart's content.
 
 ```
 $ person = Person.find(1)
