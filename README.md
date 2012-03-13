@@ -36,9 +36,7 @@ This method also can accept an options hash to further customize
 Undestroy to your needs.
 
 * `:table_name`:  use this table for archiving (Defaults to the
-  source class's table_name prefixed with "archive_".  If
-  archive_connection is set to a connection other than the source class
-  the prefix will not be added).
+  source class's table_name prefixed with "archive_").
 * `:connection`:  use this db connection for archiving
 * `:fields`:  Specify a hash of fields to values for additional fields
   you would like to include on the archive table -- lambdas will be
@@ -125,16 +123,29 @@ class simply uses the AR interface to create and delete the appropriate
 records.  This can be subclassed to provide enhanced performance or
 customized behavior for your situation.
 
-### The glue code
-
-There will also be code needed to glue these abstract concepts into
-ActiveRecord.  Such as hooking up migrations to auto-run, and hooking
-into the destroy events.
-
 Initialized with:
 
 * `:fields`: Hash of field names to values to be stored in this table
 * `:klass`: Target AR model which will be created with these attributes
+
+### `Binding::ActiveRecord`
+
+Binds the base functionality to ActiveRecord.  It is initialized by the
+parameters to the `undestroy` class method and contains the method that
+is bound to the `before_destroy` callback that performs the archiving
+functions.  Any of the code that handles ActiveRecord specific logic
+lives in here.
+
+Initialized with: *Config options from above*
+
+Attributes:
+
+* `config`: Returns this model's config object
+* `model`: The AR model this instnace was created for
+
+Methods:
+
+* `before_destroy`: Perform the archive process
 
 ## Contributing
 

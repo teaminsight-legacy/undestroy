@@ -7,7 +7,7 @@ module Undestroy::Archive::Test
 
     setup do
       @default_init = {
-        :source => ARFixture.construct(:id => 1, :name => "Foo"),
+        :source => Undestroy::Test::Fixtures::ARFixture.construct(:id => 1, :name => "Foo"),
         :config => Undestroy::Config.new
       }
     end
@@ -54,7 +54,7 @@ module Undestroy::Archive::Test
 
     setup do
       @archive = subject
-      @archive.config.target_class = ARFixture
+      @archive.config.target_class = Undestroy::Test::Fixtures::ARFixture
     end
 
     should "return instance of config.internals[:transfer]" do
