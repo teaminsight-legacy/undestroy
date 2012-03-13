@@ -29,5 +29,14 @@ class ARFixture
     @saved = true
   end
 
+  # Shortcut to build an instance for testing purposes.
+  def self.construct(attributes={})
+    self.new.tap do |fixture|
+      attributes.each do |field, value|
+        fixture[field] = value
+      end
+    end
+  end
+
 end
 

@@ -29,11 +29,11 @@ class Undestroy::Config::Test
 
     should "store result in global config" do
       subject.configure do |object|
-        object.archive_table = "FOO"
+        object.table_name = "FOO"
       end
       config = subject.instance_variable_get(:@config)
       assert config
-      assert_equal "FOO", config.archive_table
+      assert_equal "FOO", config.table_name
     end
   end
 
@@ -57,7 +57,8 @@ class Undestroy::Config::Test
     desc 'basic instance'
     subject { Undestroy::Config.new }
 
-    should have_accessor :archive_table, :archive_klass, :archive_connection, :fields, :migrate
+    should have_accessors :table_name, :connection, :fields, :migrate
+    should have_accessors :source_class, :target_class, :internals
   end
 
   class InitMethod < Base
@@ -76,16 +77,24 @@ class Undestroy::Config::Test
       assert Time.now - config.fields[:deleted_at].call < 1
     end
 
+    should "default internals to internal classes" do
+      config = subject.new
+      assert config.internals
+      assert_instance_of Hash, config.internals
+      assert_equal Undestroy::Archive, config.internals[:archive]
+      assert_equal Undestroy::Transfer, config.internals[:transfer]
+    end
+
     should "set config options using provided hash" do
-      config = subject.new :archive_table => "foo",
-        :archive_connection => "test_archive",
-        :archive_klass => "foo",
+      config = subject.new :table_name => "foo",
+        :connection => "test_archive",
+        :target_class => "foo",
         :fields => {},
         :migrate => false
 
-      assert_equal "foo", config.archive_table
-      assert_equal "foo", config.archive_klass
-      assert_equal "test_archive", config.archive_connection
+      assert_equal "foo", config.table_name
+      assert_equal "foo", config.target_class
+      assert_equal "test_archive", config.connection
       assert_equal Hash.new, config.fields
       assert_equal false, config.migrate
     end
@@ -96,14 +105,41 @@ class Undestroy::Config::Test
     desc 'merge method'
 
     should "accept config option and return merged config options" do
-      config1 = subject.new :archive_connection => 'foo', :migrate => false
-      config2 = subject.new :archive_connection => 'bar', :fields => {}
+      config1 = subject.new :connection => 'foo', :migrate => false
+      config2 = subject.new :connection => 'bar', :fields => {}, :internals => {}
       config3 = config1.merge(config2)
 
-      assert_equal 'bar', config3.archive_connection
+      assert_equal 'bar', config3.connection
       assert_equal true, config3.migrate
       assert_equal Hash.new, config3.fields
-      assert_equal 'foo', config1.archive_connection
+      assert_equal Hash.new, config3.internals
+      assert_equal 'foo', config1.connection
+    end
+  end
+
+
+  class PrimitiveFields < Base
+    desc 'primitive_fields method'
+    subject { @config ||= Undestroy::Config.new }
+
+    should "exist" do
+      assert_respond_to :primitive_fields, subject
+    end
+
+    should "require 1 parameter" do
+      assert_equal 1, subject.method(:primitive_fields).arity
+    end
+
+    should "return fields with any procs evaled" do
+      assert_instance_of Hash, subject.primitive_fields(1)
+      assert_instance_of Time, subject.primitive_fields(1)[:deleted_at]
+    end
+
+    should "pass argument in to proc" do
+      val = {}
+      subject.fields = { :test => proc { |arg| val[:arg] = arg } }
+      subject.primitive_fields("FOOO!")
+      assert_equal "FOOO!", val[:arg]
     end
   end
 
