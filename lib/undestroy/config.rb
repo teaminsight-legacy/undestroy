@@ -29,5 +29,13 @@ class Undestroy::Config
     self.class.new(self.to_hash.merge(object.to_hash))
   end
 
+  def self.configure
+    yield(config) if block_given?
+  end
+
+  def self.config
+    @config ||= self.new
+  end
+
 end
 

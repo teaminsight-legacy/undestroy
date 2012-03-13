@@ -52,7 +52,7 @@ $ person.destroy
 # => Deletes person data from people table
 ```
 
-## Stucture
+## Model Stucture
 
 This is the basic class structure of this gem.  It was designed to be
 modular and easy to tailor to your specific needs.
@@ -112,6 +112,12 @@ Handles the actual movement of data from one table to another.  This
 class simply uses the AR interface to create and delete the appropriate
 records.  This can be subclassed to provide enhanced performance or
 customized behavior for your situation.
+
+### The glue code
+
+There will also be code needed to glue these abstract concepts into
+ActiveRecord.  Such as hooking up migrations to auto-run, and hooking
+into the destroy events.
 
 Initialized with:
 
