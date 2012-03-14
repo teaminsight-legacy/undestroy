@@ -9,12 +9,16 @@ module Undestroy::Binding::ActiveRecord::Test
     setup do
       ActiveRecord::Base.establish_connection :adapter => 'sqlite3', :database => 'tmp/test.db'
       @model = Class.new(ActiveRecord::Base)
+      @model.table_name = 'foobar'
+      @model.connection.create_table :foobar, :force => true
     end
 
     teardown do
+      @model.connection.execute 'drop table if exists foobar'
       Undestroy::Config.instance_variable_set(:@config, nil)
       ActiveRecord::Base.configurations = {}
       ActiveRecord::Base.clear_active_connections!
+      Undestroy::Test::Fixtures::Archive.reset
     end
   end
 
@@ -23,6 +27,71 @@ module Undestroy::Binding::ActiveRecord::Test
     subject { Undestroy::Binding::ActiveRecord.new @model }
 
     should have_accessors :config, :model
+  end
+
+  class AddClassMethod < Base
+    desc 'add class method'
+
+    setup do
+      @ar = ActiveRecord::Base
+    end
+
+    teardown do
+      @ar.class_eval do
+        remove_possible_method :undestroy_model_binding
+        remove_possible_method :undestroy_model_binding=
+        class << self
+          remove_possible_method :undestroy_model_binding
+          remove_possible_method :undestroy
+        end
+      end
+      @ar._destroy_callbacks = []
+    end
+
+    should "add class_attr called `undestroy_model_binding`" do
+      subject.add
+      assert_respond_to :undestroy_model_binding, @ar
+      assert_respond_to :undestroy_model_binding=, @ar
+    end
+
+    should "add undestroy class method to AR::Base initializing this binding" do
+      subject.add
+      assert_respond_to :undestroy, @ar
+
+      @model.undestroy :fields => {}
+
+      assert_instance_of subject, @model.undestroy_model_binding
+      assert_equal Hash.new, @model.undestroy_model_binding.config.fields
+    end
+
+    should "add before_destroy callback calling `before_destroy` on class_attr value" do
+      subject.add
+      archive_class = Undestroy::Test::Fixtures::Archive
+      @model.undestroy_model_binding = subject.new(
+        @model,
+        :internals => { :archive => archive_class }
+      )
+      callback = @ar._destroy_callbacks.first
+      assert callback, "No destroy callbacks defined"
+      assert_equal :before, callback.kind
+      assert_instance_of Proc, callback.raw_filter
+
+      instance = @model.new
+      instance.instance_eval(&callback.raw_filter)
+      assert_equal [[:run]], archive_class.data[:calls]
+    end
+
+    should "only add once" do
+      subject.add
+      subject.add
+      assert_equal 1, @ar._destroy_callbacks.size
+    end
+
+    should "allow adding to other classes" do
+      subject.add(@model)
+      assert_respond_to :undestroy_model_binding, @model
+      assert_not_respond_to :undestroy_model_binding, @ar
+    end
   end
 
   class InitMethod < Base
@@ -117,23 +186,9 @@ module Undestroy::Binding::ActiveRecord::Test
     end
 
     should "instantiate config[:archive] instance with config and model instance and call `run`" do
-      test_class = Class.new do
-        @@data = { :calls => [] }
-        def initialize(args)
-          @@data[:args] = args
-        end
-
-        def run
-          @@data[:calls] << [:run]
-        end
-
-        def self.data
-          @@data
-        end
-      end
-
-      subject.config.internals[:archive] = test_class
+      test_class = Undestroy::Test::Fixtures::Archive
       ar_source = Undestroy::Test::Fixtures::ARFixture.new
+      subject.config.internals[:archive] = test_class
       subject.before_destroy(ar_source)
 
       assert_equal({ :config => subject.config, :source => ar_source }, test_class.data[:args])

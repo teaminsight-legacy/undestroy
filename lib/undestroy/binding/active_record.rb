@@ -47,5 +47,21 @@ class Undestroy::Binding::ActiveRecord
     klass.is_a?(Class) && klass.ancestors.include?(ActiveRecord::Base)
   end
 
+  # Add binding to the given class if it doesn't already have it
+  def self.add(klass=ActiveRecord::Base)
+    klass.class_eval do
+      class_attribute :undestroy_model_binding, :instance_writer => false
+
+      before_destroy do
+        undestroy_model_binding.before_destroy(self)
+      end
+
+      def self.undestroy(options={})
+        self.undestroy_model_binding = Undestroy::Binding::ActiveRecord.new(self, options)
+      end
+
+    end unless klass.respond_to?(:undestroy_model_binding)
+  end
+
 end
 
