@@ -33,30 +33,26 @@ module Undestroy::Binding::ActiveRecord::Test
     desc 'add class method'
 
     setup do
-      @ar = ActiveRecord::Base
-    end
-
-    teardown do
-      @ar.class_eval do
-        remove_possible_method :undestroy_model_binding
+      @model.class_eval do
+        undef_method :undestroy_model_binding if respond_to?(:undestroy_model_binding)
         remove_possible_method :undestroy_model_binding=
         class << self
-          remove_possible_method :undestroy_model_binding
-          remove_possible_method :undestroy
+          undef_method :undestroy_model_binding
+          undef_method :undestroy
         end
       end
-      @ar._destroy_callbacks = []
+      @model._destroy_callbacks = []
     end
 
     should "add class_attr called `undestroy_model_binding`" do
-      subject.add
-      assert_respond_to :undestroy_model_binding, @ar
-      assert_respond_to :undestroy_model_binding=, @ar
+      subject.add @model
+      assert_respond_to :undestroy_model_binding, @model
+      assert_respond_to :undestroy_model_binding=, @model
     end
 
     should "add undestroy class method to AR::Base initializing this binding" do
-      subject.add
-      assert_respond_to :undestroy, @ar
+      subject.add @model
+      assert_respond_to :undestroy, @model
 
       @model.undestroy :fields => {}
 
@@ -65,13 +61,13 @@ module Undestroy::Binding::ActiveRecord::Test
     end
 
     should "add before_destroy callback calling `before_destroy` on class_attr value" do
-      subject.add
+      subject.add @model
       archive_class = Undestroy::Test::Fixtures::Archive
       @model.undestroy_model_binding = subject.new(
         @model,
         :internals => { :archive => archive_class }
       )
-      callback = @ar._destroy_callbacks.first
+      callback = @model._destroy_callbacks.first
       assert callback, "No destroy callbacks defined"
       assert_equal :before, callback.kind
       assert_instance_of Proc, callback.raw_filter
@@ -82,15 +78,16 @@ module Undestroy::Binding::ActiveRecord::Test
     end
 
     should "only add once" do
-      subject.add
-      subject.add
-      assert_equal 1, @ar._destroy_callbacks.size
+      subject.add @model
+      subject.add @model
+      assert_equal 1, @model._destroy_callbacks.size
     end
 
     should "allow adding to other classes" do
-      subject.add(@model)
-      assert_respond_to :undestroy_model_binding, @model
-      assert_not_respond_to :undestroy_model_binding, @ar
+      new_model = Class.new(@model)
+      subject.add(new_model)
+      assert_respond_to :undestroy_model_binding, new_model
+      assert_not_respond_to :undestroy_model_binding, @model
     end
   end
 

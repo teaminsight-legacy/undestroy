@@ -1,9 +1,4 @@
-require "undestroy/version"
-require "undestroy/config"
-require "undestroy/transfer"
-require "undestroy/archive"
-require "undestroy/binding"
-
-module Undestroy
-end
+# Default behavior is to setup binding to ORM
+# If you want a non-intrusive require use 'undestroy/without_binding'
+require 'undestroy/with_binding'
 
