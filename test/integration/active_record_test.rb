@@ -7,6 +7,7 @@ module Undestroy::Test::Integration::ActiveRecordTest
 
     setup do
       @ar = Undestroy::Test::ARMain
+      @ar_alt = Undestroy::Test::ARAlt
     end
 
   end
@@ -77,6 +78,46 @@ module Undestroy::Test::Integration::ActiveRecordTest
       assert_kind_of Time, archive.deleted_at
       assert (Time.now - archive.deleted_at) < 1.second
       assert_equal 0, @model.all.size
+    end
+  end
+
+  class BasicModelWithDifferentBase < Base
+    desc 'basic model with Undestroy and alternate abstract class'
+
+    setup do
+      @ar.connection.create_table :basic_model_table do |t|
+        t.string :name
+      end
+      @ar_alt.connection.create_table :archive_basic_model_table do |t|
+        t.string :name
+        t.datetime :deleted_at
+      end
+      @model = Class.new(@ar)
+      @model.table_name = 'basic_model_table'
+
+      @model.undestroy :abstract_class => @ar_alt
+      @target_class = @model.undestroy_model_binding.config.target_class
+    end
+
+    teardown do
+      @ar.connection.drop_table :basic_model_table
+      @ar_alt.connection.drop_table :archive_basic_model_table
+    end
+
+    should "create an archive record on destroy" do
+      @model.create!(:name => "bar")
+      original = @model.first
+      original.destroy
+      archive = @target_class.first
+
+      assert_not @model.first
+      assert original
+      assert archive
+      assert_equal original.id, archive.id
+      assert_equal 'bar', archive.name
+      assert_kind_of Time, archive.deleted_at
+      assert (Time.now - archive.deleted_at) < 1.second
+      assert_equal 1, @target_class.all.size
     end
   end
 
