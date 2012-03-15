@@ -3,9 +3,9 @@
 Allow copying records to alternate table before destroying an
 ActiveRecord model for archiving purposes.  Data will be mapped
 one-to-one to the archive table schema.  Additional fields can also be
-configured for additional tracking information.  Archive table schema
+configured for additional tracking information.  -Archive table schema
 will automatically be updated when the parent model's table is migrated
-through Rails.
+through Rails.- (not yet)
 
 ## Installation
 
@@ -21,6 +21,15 @@ Or install it yourself as:
 
     $ gem install undestroy
 
+You can also tell Undestroy to not extend ActiveRecord when required by
+using this line in your Gemfile instead:
+
+    gem 'undestroy', :require => 'undestroy/without_binding'
+
+If you do this you must call
+`Undestroy::Binding::ActiveRecord.add(MyARSubclass)` where
+`MYARSubclass` is the class you want Undestroy to extend instead.
+
 ## Usage
 
 To activate Undestroy on a model, simply call the `undestroy` method
@@ -32,7 +41,7 @@ class Person < ActiveRecord::Base
 end
 ```
 
-This method also can accept an options hash to further customize
+This method can also accept an options hash to further customize
 Undestroy to your needs.
 
 * `:table_name`:  use this table for archiving (Defaults to the
@@ -64,23 +73,14 @@ $ person.destroy
 # => Deletes person data from people table
 ```
 
-## Model Stucture
+## Configuring
 
-This is the basic class structure of this gem.  It was designed to be
-modular and easy to tailor to your specific needs.
-
-### `Config`
-
-Holds configuration information for Undestroy.  An instance is created
-globally and serves as defaults for each model using Undestroy.  Each
-model also creates its own instance of Config allowing any model to
-override any of the globally configurable options.
-
-To change global defaults use this configuration DSL:
+You can specify custom global configurations for Undestroy through a
+configuration block in your application initializer:
 
 ```ruby
 Undestroy::Config.configure do |config|
-  config.abstract_class = ArchiveModel
+  config.abstract_class = ArchiveModelBase
   config.fields = {
     :deleted_at => proc { Time.now },
     :deleted_by_id => proc { User.current.id if User.current }
@@ -88,65 +88,9 @@ Undestroy::Config.configure do |config|
 end
 ```
 
-This changes the default abstract class from ActiveRecord::Base to a
-model called ArchiveModel.  This also sets the default fields to include
-a deleted_by_id which automatically sets the current user as the deleter
-of the record.
-
-Possible configuration options are listed in the _Usage_ section above.
-
-### `Archive`
-
-Map the source model's schema to the archive model's and initiate the
-transfer through `Transfer`.  When `run` is called the Transfer is
-initialized with a primitive hash mapping the schema to the archive
-table.
-
-Initialized with:
-
-* `:config`: Instance of Undestroy::Config for this model
-* `:source`: Instance of the source model
-
-### `Restore`
-
-Map the archive model's schema to the source model's and initiate the
-transfer through `Transfer`
-
-Initialized with:
-
-* `:config`: Instance of Undestroy::Config for this model
-* `:archive`: Instance of the archived model
-
-### `Transfer`
-
-Handles the actual movement of data from one table to another.  This
-class simply uses the AR interface to create and delete the appropriate
-records.  This can be subclassed to provide enhanced performance or
-customized behavior for your situation.
-
-Initialized with:
-
-* `:fields`: Hash of field names to values to be stored in this table
-* `:klass`: Target AR model which will be created with these attributes
-
-### `Binding::ActiveRecord`
-
-Binds the base functionality to ActiveRecord.  It is initialized by the
-parameters to the `undestroy` class method and contains the method that
-is bound to the `before_destroy` callback that performs the archiving
-functions.  Any of the code that handles ActiveRecord specific logic
-lives in here.
-
-Initialized with: *Config options from above*
-
-Attributes:
-
-* `config`: Returns this model's config object
-* `model`: The AR model this instnace was created for
-
-Methods:
-
-* `before_destroy`: Perform the archive process
+Options set in this block will be the default for all models with
+undestroy activated.  They can be overriden with options passed to the
+`undestroy` method
 
 ## Contributing
 
