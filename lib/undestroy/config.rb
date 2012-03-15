@@ -1,6 +1,6 @@
 class Undestroy::Config
   OPTIONS = [
-    :table_name, :connection, :fields, :migrate,
+    :table_name, :abstract_class, :fields, :migrate,
     :source_class, :target_class, :internals
   ]
   attr_accessor *OPTIONS

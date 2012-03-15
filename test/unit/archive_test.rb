@@ -1,7 +1,7 @@
 require 'assert'
 
 module Undestroy::Archive::Test
-  class Base < Assert::Context
+  class Base < Undestroy::Test::Base
     subject { Undestroy::Archive }
     desc 'Undestroy::Archive class'
 

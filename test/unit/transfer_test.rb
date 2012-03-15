@@ -2,7 +2,7 @@ require 'assert'
 
 module Undestroy::Transfer::Test
 
-  class Base < Assert::Context
+  class Base < Undestroy::Test::Base
     desc 'Undestroy::Transfer class'
     subject { Undestroy::Transfer }
   end

@@ -27,11 +27,8 @@ class Undestroy::Binding::ActiveRecord
 
   # Builds a dynamic AR class representing the archival table
   def create_target_class
-    Class.new(ActiveRecord::Base).tap do |target_class|
+    Class.new(self.config.abstract_class || ActiveRecord::Base).tap do |target_class|
       target_class.table_name = self.config.table_name
-      if connection_config = target_class.configurations[self.config.connection]
-        target_class.establish_connection(connection_config)
-      end
     end
   end
 
@@ -52,11 +49,10 @@ class Undestroy::Binding::ActiveRecord
     klass.class_eval do
       class_attribute :undestroy_model_binding, :instance_writer => false
 
-      before_destroy do
-        undestroy_model_binding.before_destroy(self)
-      end
-
       def self.undestroy(options={})
+        before_destroy do
+          self.undestroy_model_binding.before_destroy(self) if undestroy_model_binding
+        end unless self.undestroy_model_binding
         self.undestroy_model_binding = Undestroy::Binding::ActiveRecord.new(self, options)
       end
 

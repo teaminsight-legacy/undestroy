@@ -37,7 +37,9 @@ Undestroy to your needs.
 
 * `:table_name`:  use this table for archiving (Defaults to the
   source class's table_name prefixed with "archive_").
-* `:connection`:  use this db connection for archiving
+* `:abstract_class`:  use this as the base class for the target_class
+  specify an alternate for custom extensions / DB connections (defaults
+  to ActiveRecord::Base)
 * `:fields`:  Specify a hash of fields to values for additional fields
   you would like to include on the archive table -- lambdas will be
   called with the instance being destroyed and returned value will be
@@ -78,7 +80,7 @@ To change global defaults use this configuration DSL:
 
 ```ruby
 Undestroy::Config.configure do |config|
-  config.connection = "#{Rails.env}_archive"
+  config.abstract_class = ArchiveModel
   config.fields = {
     :deleted_at => proc { Time.now },
     :deleted_by_id => proc { User.current.id if User.current }
@@ -86,11 +88,10 @@ Undestroy::Config.configure do |config|
 end
 ```
 
-This sets the default connection to the Rails.env followed by an
-"_archive".  An entry matching this format must exist in database.yml in
-order for this to function properly.  This also sets the default fields
-to include a deleted_by_id which automatically sets the current user as
-the deleter of the record.
+This changes the default abstract class from ActiveRecord::Base to a
+model called ArchiveModel.  This also sets the default fields to include
+a deleted_by_id which automatically sets the current user as the deleter
+of the record.
 
 Possible configuration options are listed in the _Usage_ section above.
 

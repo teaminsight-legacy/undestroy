@@ -2,22 +2,21 @@ require 'assert'
 
 module Undestroy::Binding::ActiveRecord::Test
 
-  class Base < Assert::Context
+  class Base < Undestroy::Test::Base
     desc 'Binding::ActiveRecord class'
     subject { Undestroy::Binding::ActiveRecord }
 
     setup do
-      ActiveRecord::Base.establish_connection :adapter => 'sqlite3', :database => 'tmp/test.db'
-      @model = Class.new(ActiveRecord::Base)
+      @model = Class.new(Undestroy::Test::ARMain)
       @model.table_name = 'foobar'
       @model.connection.create_table :foobar, :force => true
+      @model.connection.create_table :archive_foobar, :force => true
     end
 
     teardown do
       @model.connection.execute 'drop table if exists foobar'
+      @model.connection.execute 'drop table if exists archive_foobar'
       Undestroy::Config.instance_variable_set(:@config, nil)
-      ActiveRecord::Base.configurations = {}
-      ActiveRecord::Base.clear_active_connections!
       Undestroy::Test::Fixtures::Archive.reset
     end
   end
@@ -60,13 +59,11 @@ module Undestroy::Binding::ActiveRecord::Test
       assert_equal Hash.new, @model.undestroy_model_binding.config.fields
     end
 
-    should "add before_destroy callback calling `before_destroy` on class_attr value" do
+    should "add before_destroy callback when undestroy called" do
       subject.add @model
       archive_class = Undestroy::Test::Fixtures::Archive
-      @model.undestroy_model_binding = subject.new(
-        @model,
-        :internals => { :archive => archive_class }
-      )
+      @model.undestroy :internals => { :archive => archive_class }
+
       callback = @model._destroy_callbacks.first
       assert callback, "No destroy callbacks defined"
       assert_equal :before, callback.kind
@@ -77,9 +74,10 @@ module Undestroy::Binding::ActiveRecord::Test
       assert_equal [[:run]], archive_class.data[:calls]
     end
 
-    should "only add once" do
+    should "only add callbacks once" do
       subject.add @model
-      subject.add @model
+      @model.undestroy
+      @model.undestroy
       assert_equal 1, @model._destroy_callbacks.size
     end
 
@@ -139,14 +137,13 @@ module Undestroy::Binding::ActiveRecord::Test
     end
 
     should "use target_class if provided" do
-      target = Class.new(ActiveRecord::Base)
+      target = Class.new(Undestroy::Test::ARAlt)
       target.table_name = "target_class_test"
-      target.establish_connection :adapter => 'sqlite3', :database => 'tmp/target_class_test.db'
       binding = subject.new(@model, :target_class => target)
 
       assert_equal target, binding.config.target_class
       assert_equal 'target_class_test', binding.config.target_class.table_name
-      assert_equal 'tmp/target_class_test.db', binding.config.target_class.connection_config[:database]
+      assert_equal 'tmp/alt.db', binding.config.target_class.connection_config[:database]
     end
 
     should "validate target_class is AR::Base if provided" do
@@ -159,16 +156,10 @@ module Undestroy::Binding::ActiveRecord::Test
       assert_equal "foo_foo_archive", binding.config.target_class.table_name
     end
 
-    should "set target class's connection to :connection attr" do
+    should "set target class's parent class to :abstract_class attr" do
       @model.table_name = :foobar
-      @model.configurations = {
-        'archive_foobar_test' => {
-          'adapter' => 'sqlite3',
-          'database' => 'tmp/foobar_test.db'
-        }
-      }
-      binding = subject.new(@model, :connection => "archive_foobar_test")
-      assert_equal 'tmp/foobar_test.db', binding.config.target_class.connection_config[:database]
+      binding = subject.new(@model, :abstract_class => Undestroy::Test::ARAlt)
+      assert_equal 'tmp/alt.db', binding.config.target_class.connection_config[:database]
     end
 
   end

@@ -1,70 +1,43 @@
 require 'undestroy'
 
+ActiveRecord::Base.configurations = {
+  'main' => {
+    :adapter => 'sqlite3',
+    :database => 'tmp/main.db'
+  },
+  'alt' => {
+    :adapter => 'sqlite3',
+    :database => 'tmp/alt.db'
+  },
+}
+
 module Undestroy::Test
+
+  class Base < Assert::Context
+
+    teardown_once do
+      `rm -f tmp/*.db`
+    end
+
+  end
+
+  ActiveRecord::Base.establish_connection 'main'
+  class ARMain < ActiveRecord::Base
+    self.abstract_class = true
+  end
+
+  class ARAlt < ActiveRecord::Base
+    self.abstract_class = true
+    establish_connection 'alt'
+  end
+
   module Integration
   end
 
   module Fixtures
-    class ARFixture
-      attr_accessor :attributes
-      attr_reader :saved
-
-      alias :saved? :saved
-
-      def initialize(attributes={})
-        @saved = false
-        self.attributes = attributes.dup
-        self.attributes.delete(:id)
-      end
-
-      def [](key)
-        self.attributes[key.to_sym]
-      end
-
-      def []=(key, val)
-        self.attributes[key.to_sym] = val
-      end
-
-      # Method missing won't catch this one
-      def id
-        self.attributes[:id]
-      end
-
-      def save
-        @saved = true
-      end
-
-      # Shortcut to build an instance for testing purposes.
-      def self.construct(attributes={})
-        self.new.tap do |fixture|
-          attributes.each do |field, value|
-            fixture[field] = value
-          end
-        end
-      end
-
-    end
-
-    class Archive
-      def initialize(args)
-        @@data[:args] = args
-      end
-
-      def run
-        @@data[:calls] << [:run]
-      end
-
-      def self.data
-        @@data
-      end
-
-      def self.reset
-        @@data = { :calls => [] }
-      end
-    end
-    Archive.reset
-
+    autoload :ActiveRecordModels, 'test/fixtures/active_record_models'
+    autoload :ARFixture, 'test/fixtures/ar'
+    autoload :Archive, 'test/fixtures/archive'
   end
-
 end
 

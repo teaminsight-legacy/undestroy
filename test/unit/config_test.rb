@@ -2,7 +2,7 @@ require 'assert'
 
 class Undestroy::Config::Test
 
-  class Base < Assert::Context
+  class Base < Undestroy::Test::Base
     desc 'Undestroy::Config class'
     subject { Undestroy::Config }
 
@@ -57,7 +57,7 @@ class Undestroy::Config::Test
     desc 'basic instance'
     subject { Undestroy::Config.new }
 
-    should have_accessors :table_name, :connection, :fields, :migrate
+    should have_accessors :table_name, :abstract_class, :fields, :migrate
     should have_accessors :source_class, :target_class, :internals
   end
 
@@ -87,14 +87,14 @@ class Undestroy::Config::Test
 
     should "set config options using provided hash" do
       config = subject.new :table_name => "foo",
-        :connection => "test_archive",
+        :abstract_class => "test_archive",
         :target_class => "foo",
         :fields => {},
         :migrate => false
 
       assert_equal "foo", config.table_name
       assert_equal "foo", config.target_class
-      assert_equal "test_archive", config.connection
+      assert_equal "test_archive", config.abstract_class
       assert_equal Hash.new, config.fields
       assert_equal false, config.migrate
     end
@@ -105,15 +105,15 @@ class Undestroy::Config::Test
     desc 'merge method'
 
     should "accept config option and return merged config options" do
-      config1 = subject.new :connection => 'foo', :migrate => false
-      config2 = subject.new :connection => 'bar', :fields => {}, :internals => {}
+      config1 = subject.new :abstract_class => 'foo', :migrate => false
+      config2 = subject.new :abstract_class => 'bar', :fields => {}, :internals => {}
       config3 = config1.merge(config2)
 
-      assert_equal 'bar', config3.connection
+      assert_equal 'bar', config3.abstract_class
       assert_equal true, config3.migrate
       assert_equal Hash.new, config3.fields
       assert_equal Hash.new, config3.internals
-      assert_equal 'foo', config1.connection
+      assert_equal 'foo', config1.abstract_class
     end
   end
 
