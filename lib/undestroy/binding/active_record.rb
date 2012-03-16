@@ -1,6 +1,7 @@
 require 'active_record'
 
 class Undestroy::Binding::ActiveRecord
+
   attr_accessor :config, :model
 
   def initialize(model, options={})
@@ -60,4 +61,6 @@ class Undestroy::Binding::ActiveRecord
   end
 
 end
+
+require 'undestroy/binding/active_record/migration_statement'
 
