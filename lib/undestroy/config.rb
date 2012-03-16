@@ -63,3 +63,4 @@ class Undestroy::Config
 
 end
 
+require 'undestroy/config/field'
