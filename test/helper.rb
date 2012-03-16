@@ -15,6 +15,10 @@ module Undestroy::Test
 
   class Base < Assert::Context
 
+    teardown do
+      Undestroy::Config.reset_catalog
+    end
+
     teardown_once do
       `rm -f tmp/*.db`
     end
