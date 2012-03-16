@@ -9,6 +9,7 @@ class Undestroy::Binding::ActiveRecord
 
     self.model = model
     self.config = Undestroy::Config.config.merge(options)
+    yield self.config if block_given?
 
     set_defaults
   end

@@ -8,13 +8,15 @@ class Undestroy::Config
   def initialize(options={})
     self.indexes = false
     self.migrate = true
-    self.fields = {
-      :deleted_at => proc { Time.now }
-    }
+    self.fields = {}
     self.internals = {
       :archive => Undestroy::Archive,
       :transfer => Undestroy::Transfer,
     }
+
+    add_field :deleted_at, :datetime do |instance|
+      Time.now
+    end
 
     options.each do |key, value|
       self[key] = value
@@ -40,9 +42,13 @@ class Undestroy::Config
   end
 
   def primitive_fields(object)
-    self.fields.inject({}) do |hash, (key, val)|
-      hash.merge(key => val.is_a?(Proc) ? val.call(object) : val)
+    self.fields.inject({}) do |hash, (key, field)|
+      hash.merge(key => field.value(object))
     end
+  end
+
+  def add_field(name, *args, &block)
+    self.fields[name] = Field.new(name, *args, &block)
   end
 
   def self.configure

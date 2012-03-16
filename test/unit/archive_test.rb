@@ -75,7 +75,7 @@ module Undestroy::Archive::Test
 
     should "eval lambdas with source instance as argument" do
       val = nil
-      @archive.config.fields[:test] = proc { |arg| val = arg; "FOO" }
+      @archive.config.add_field(:test, :string) { |arg| val = arg; "FOO" }
       target = @archive.transfer.target
       assert_equal @archive.source, val
       assert_equal "FOO", target.attributes[:test]

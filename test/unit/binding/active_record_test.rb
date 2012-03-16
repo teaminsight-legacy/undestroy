@@ -120,6 +120,13 @@ module Undestroy::Binding::ActiveRecord::Test
       assert_equal({ :foo => :bar }, subject.new(@model, :fields => { :foo => :bar }).config.fields)
     end
 
+    should "accept block and pass config object to it" do
+      binding = subject.new @model, {} do |config|
+        config.fields = {}
+      end
+      assert_equal Hash.new, binding.config.fields
+    end
+
     should "set config.source_class to value of model" do
       binding = subject.new(@model)
       assert_equal @model, binding.config.source_class

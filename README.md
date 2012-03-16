@@ -41,23 +41,36 @@ class Person < ActiveRecord::Base
 end
 ```
 
-This method can also accept an options hash to further customize
-Undestroy to your needs.
+This method can also accept an options hash or block to further
+customize Undestroy to your needs.  Here are some of the common options:
 
 * `:table_name`:  use this table for archiving (Defaults to the
   source class's table_name prefixed with "archive_").
 * `:abstract_class`:  use this as the base class for the target_class
   specify an alternate for custom extensions / DB connections (defaults
   to ActiveRecord::Base)
-* `:fields`:  Specify a hash of fields to values for additional fields
-  you would like to include on the archive table -- lambdas will be
-  called with the instance being destroyed and returned value will be
-  used (default: `{ :deleted_at => proc { |instance| Time.now } }`).
 * `:migrate`:  Should Undestroy migrate the archive table together with
   this model's table (default: true)
 
-Internal Options (for advanced users):
+You can also use a block to handle the configuration:
 
+```ruby
+class Person < ActiveRecord::Base
+  undestroy do |config|
+    config.table_name "old_people"
+    config.add_field :deleted_by_id, :integer do |instance|
+      User.current.id if User.current
+    end
+  end
+end
+```
+
+Advanced Options:
+
+* `:fields`:  Specify a hash of Field objects describing additional
+  fields you would like to include on the archive table.  The preferred
+  method of specificying fields is through the add_field method with the
+  block configuration method.  (defaults to deleted_at timestamp).
 * `:source_class`:  the AR model of the originating data.  Set
   automatically to class `undestroy` method is called on.
 * `:target_class`:  use this AR model for archiving.  Set automatically
@@ -81,10 +94,9 @@ configuration block in your application initializer:
 ```ruby
 Undestroy::Config.configure do |config|
   config.abstract_class = ArchiveModelBase
-  config.fields = {
-    :deleted_at => proc { Time.now },
-    :deleted_by_id => proc { User.current.id if User.current }
-  }
+  config.add_field :deleted_by_id, :datetime do |instance|
+    User.current.id if User.current
+  end
 end
 ```
 

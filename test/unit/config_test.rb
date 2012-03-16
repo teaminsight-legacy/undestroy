@@ -102,9 +102,9 @@ class Undestroy::Config::Test
     should "default fields to delayed deleted_at" do
       config = subject.new
       assert_equal [:deleted_at], config.fields.keys
-      assert_instance_of Proc, config.fields[:deleted_at]
-      assert_instance_of Time, config.fields[:deleted_at].call
-      assert Time.now - config.fields[:deleted_at].call < 1
+      assert_instance_of Undestroy::Config::Field, config.fields[:deleted_at]
+      assert_instance_of Time, config.fields[:deleted_at].value(1)
+      assert Time.now - config.fields[:deleted_at].value(1)< 1
     end
 
     should "default internals to internal classes" do
@@ -160,7 +160,7 @@ class Undestroy::Config::Test
   end
 
 
-  class PrimitiveFields < Base
+  class PrimitiveFieldsMethod < Base
     desc 'primitive_fields method'
     subject { @config ||= Undestroy::Config.new }
 
@@ -179,9 +179,33 @@ class Undestroy::Config::Test
 
     should "pass argument in to proc" do
       val = {}
-      subject.fields = { :test => proc { |arg| val[:arg] = arg } }
+      subject.fields = { :test => Undestroy::Config::Field.new(:test, :string) { |arg| val[:arg] = arg } }
       subject.primitive_fields("FOOO!")
       assert_equal "FOOO!", val[:arg]
+    end
+  end
+
+  class AddFieldMethod < Base
+    desc 'add_field method'
+    subject { @config ||= Undestroy::Config.new }
+
+    should "pass args to Config::Field constructor" do
+      field = subject.add_field :foo, :string, 'val'
+      assert_instance_of Undestroy::Config::Field, field
+      assert_equal :foo, field.name
+      assert_equal :string, field.type
+      assert_equal 'val', field.raw_value
+    end
+
+    should "pass block to Config::Field constructor" do
+      block = proc { |i| "foo" }
+      field = subject.add_field :foo, :string, &block
+      assert_equal block, field.raw_value
+    end
+
+    should "store new Field on fields hash" do
+      field = subject.add_field :foo, :string, 'val'
+      assert_equal field, subject.fields[:foo]
     end
   end
 
