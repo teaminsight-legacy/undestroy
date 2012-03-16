@@ -232,6 +232,9 @@ module Undestroy::Binding::ActiveRecord::MigrationStatement::Test
       obj.run!(callable)
       assert_equal [obj.method_name, obj.target_arguments, block].flatten, called.flatten
     end
+
+    should "run additional add_column calls for all config.fields on :create_table method"
+
   end
 
 end
