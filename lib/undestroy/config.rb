@@ -18,6 +18,8 @@ class Undestroy::Config
     options.each do |key, value|
       self[key] = value
     end
+
+    self.class.catalog << self
   end
 
   def [](key)
@@ -48,6 +50,14 @@ class Undestroy::Config
 
   def self.config
     @config ||= self.new
+  end
+
+  def self.catalog
+    @@catalog ||= []
+  end
+
+  def self.reset_catalog
+    @@catalog = []
   end
 
 end

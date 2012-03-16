@@ -53,6 +53,36 @@ class Undestroy::Config::Test
     end
   end
 
+  class CatalogClassMethod < Base
+    desc 'catalog class method'
+
+    should "exist" do
+      assert_respond_to :catalog, subject
+    end
+
+    should "return Array" do
+      assert_kind_of Array, subject.catalog
+    end
+
+    should "persist Array" do
+      assert_equal subject.catalog.object_id, subject.catalog.object_id
+    end
+  end
+
+  class ResetCatalogClassMethod < Base
+    desc 'reset_catalog class method'
+
+    should "exist" do
+      assert_respond_to :reset_catalog, subject
+    end
+
+    should "reset catalog cache" do
+      catalog = subject.catalog
+      subject.reset_catalog
+      assert_not_equal catalog.object_id, subject.catalog.object_id
+    end
+  end
+
   class BasicInstance < Base
     desc 'basic instance'
     subject { Undestroy::Config.new }
@@ -97,6 +127,11 @@ class Undestroy::Config::Test
       assert_equal "test_archive", config.abstract_class
       assert_equal Hash.new, config.fields
       assert_equal false, config.migrate
+    end
+
+    should "track instances in catalog" do
+      config = subject.new
+      assert_includes config, subject.catalog
     end
 
   end
