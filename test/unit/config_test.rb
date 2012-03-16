@@ -87,7 +87,7 @@ class Undestroy::Config::Test
     desc 'basic instance'
     subject { Undestroy::Config.new }
 
-    should have_accessors :table_name, :abstract_class, :fields, :migrate
+    should have_accessors :table_name, :abstract_class, :fields, :migrate, :indexes
     should have_accessors :source_class, :target_class, :internals
   end
 
@@ -115,18 +115,25 @@ class Undestroy::Config::Test
       assert_equal Undestroy::Transfer, config.internals[:transfer]
     end
 
+    should "default indexes to false" do
+      config = subject.new
+      assert_equal false, config.indexes
+    end
+
     should "set config options using provided hash" do
       config = subject.new :table_name => "foo",
         :abstract_class => "test_archive",
         :target_class => "foo",
         :fields => {},
-        :migrate => false
+        :migrate => false,
+        :indexes => true
 
       assert_equal "foo", config.table_name
       assert_equal "foo", config.target_class
       assert_equal "test_archive", config.abstract_class
       assert_equal Hash.new, config.fields
       assert_equal false, config.migrate
+      assert_equal true, config.indexes
     end
 
     should "track instances in catalog" do

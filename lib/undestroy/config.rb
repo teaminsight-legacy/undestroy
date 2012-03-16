@@ -1,11 +1,12 @@
 class Undestroy::Config
   OPTIONS = [
-    :table_name, :abstract_class, :fields, :migrate,
+    :table_name, :abstract_class, :fields, :migrate, :indexes,
     :source_class, :target_class, :internals
   ]
   attr_accessor *OPTIONS
 
   def initialize(options={})
+    self.indexes = false
     self.migrate = true
     self.fields = {
       :deleted_at => proc { Time.now }
