@@ -33,6 +33,13 @@ class Undestroy::Binding::ActiveRecord::MigrationStatement
     end.first
   end
 
+  def target_arguments
+    self.arguments.dup.tap do |args|
+      args[0] = target_table_name
+      args[1] = binding.prefix_table_name(args[1]) if rename_table?
+    end
+  end
+
   def schema_action?
     SCHEMA.include?(method_name)
   end
@@ -44,11 +51,34 @@ class Undestroy::Binding::ActiveRecord::MigrationStatement
   def run?
     (
       arguments.present? &&
-      config &&
-      config.migrate &&
-      schema_action?
+      config && config.migrate &&
+      !rename_table_exception? &&
+      (
+        schema_action? ||
+        index_action? && config.indexes
+      )
     )
   end
 
+  def run!(callable)
+    callable.call(method_name, *target_arguments, &block)
+  end
+
+  protected
+
+  # We don't want to run rename_table on the target when the table name is
+  # explicitly set in the configuration.  The user must do manual migrating
+  # in that case.
+  def rename_table_exception?
+    rename_table? && config.table_name
+  end
+
+  def rename_table?
+    method_name == :rename_table
+  end
+
+  def binding
+    config.source_class.undestroy_model_binding
+  end
 end
 

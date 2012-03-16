@@ -1,6 +1,6 @@
 class Undestroy::Config
   OPTIONS = [
-    :table_name, :abstract_class, :fields, :migrate, :indexes,
+    :table_name, :abstract_class, :fields, :migrate, :indexes, :prefix,
     :source_class, :target_class, :internals
   ]
   attr_accessor *OPTIONS
@@ -8,6 +8,7 @@ class Undestroy::Config
   def initialize(options={})
     self.indexes = false
     self.migrate = true
+    self.prefix = "archive_"
     self.fields = {}
     self.internals = {
       :archive => Undestroy::Archive,

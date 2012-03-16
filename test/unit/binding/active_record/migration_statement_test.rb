@@ -157,27 +157,81 @@ module Undestroy::Binding::ActiveRecord::MigrationStatement::Test
       assert_not obj.run?
     end
 
-    should "return true if :index is configured and index_action? is true"
-    should "return false if :index is configured and index_action? is false"
-    should "return false if :index is not configured for this table"
+    should "return true if :index is configured and index_action? is true" do
+      @source_class.table_name = 'bar'
+      @source_class.undestroy :indexes => true
+      obj = subject.new :add_index, :bar
+      assert obj.index_action?
+      assert obj.run?
+    end
+
+    should "return false if :index is configured and index_action? is false" do
+      @source_class.table_name = 'bar'
+      @source_class.undestroy :indexes => true
+      obj = subject.new :method, :bar
+      assert_not obj.index_action?
+      assert_not obj.run?
+    end
+
+    should "return false if :index is not configured for this table" do
+      @source_class.table_name = 'bar'
+      @source_class.undestroy
+      obj = subject.new :add_index, :bar
+      assert obj.index_action?
+      assert_not obj.run?
+    end
 
     # We will not rename a table that has been configured to a specific name
-    should "return false if :method_name is rename_table and :table_name configuration is set explicitly"
+    should "return false if :method_name is rename_table and :table_name configuration is set explicitly" do
+      @source_class.table_name = 'bar'
+      @source_class.undestroy :table_name => 'old_bar'
+      obj = subject.new :rename_table, :bar, :baz
+      assert_not obj.run?
+    end
   end
 
   class TargetArgsMethod < Base
     desc 'target_arguments method'
 
-    should "substitute source table_name for target table_name"
-    # TODO: Figure out how to make this know the correct table names
-    should "substitute arg[1] for target table_name on rename_table method"
+    setup do
+      @source_class.table_name = 'source'
+      @source_class.undestroy
+    end
+
+    should "leave original arguments alone" do
+      obj = subject.new :add_column, :source, :foo, :string
+      args = obj.arguments.dup
+      obj.target_arguments
+      assert_equal args, obj.arguments
+    end
+
+    should "substitute source table_name for target table_name" do
+      obj = subject.new :add_column, :source, :foo, :string
+      assert_equal ['archive_source', :foo, :string], obj.target_arguments
+    end
+
+    should "substitute arg[1] for target table_name on rename_table method" do
+      obj = subject.new :rename_table, :source, :new_source
+      assert_equal ['archive_source', 'archive_new_source'], obj.target_arguments
+    end
   end
 
   class RunBangMethod < Base
     desc 'run! method'
 
-    should "accept callable argument to run on"
-    should "call the method with (method_name, target_args, block)"
+    setup do
+      @source_class.table_name = 'source'
+      @source_class.undestroy
+    end
+
+    should "accept callable argument to run on and call with (method_name, target_args, block)" do
+      called = false
+      callable = proc { |*args, &block| called = [args, block] }
+      block = proc { }
+      obj = subject.new :add_column, :source, :foo, :string, &block
+      obj.run!(callable)
+      assert_equal [obj.method_name, obj.target_arguments, block].flatten, called.flatten
+    end
   end
 
 end

@@ -132,10 +132,10 @@ module Undestroy::Binding::ActiveRecord::Test
       assert_equal @model, binding.config.source_class
     end
 
-    should "default :table_name to 'archive_{source.table_name}'" do
+    should "default :table_name to '{config.prefix}{source.table_name}'" do
       @model.table_name = :foobar
-      binding = subject.new(@model)
-      assert_equal 'archive_foobar', binding.config.table_name
+      binding = subject.new(@model, :prefix => "prefix_archive_")
+      assert_equal 'prefix_archive_foobar', binding.config.table_name
     end
 
     should "create a target_class if none provided" do
@@ -188,6 +188,16 @@ module Undestroy::Binding::ActiveRecord::Test
 
       assert_equal({ :config => subject.config, :source => ar_source }, test_class.data[:args])
       assert_equal [[:run]], test_class.data[:calls]
+    end
+  end
+
+  class PrefixTableNameMethod < Base
+    desc 'prefix_table_name method'
+    subject { @binding ||= Undestroy::Binding::ActiveRecord.new(@model) }
+
+    should "return {config.prefix}{source.table_name}" do
+      subject.config.prefix = "archive_prefix_"
+      assert_equal "archive_prefix_foo", subject.prefix_table_name("foo")
     end
   end
 
