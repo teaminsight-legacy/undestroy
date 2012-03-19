@@ -233,7 +233,17 @@ module Undestroy::Binding::ActiveRecord::MigrationStatement::Test
       assert_equal [obj.method_name, obj.target_arguments, block].flatten, called.flatten
     end
 
-    should "run additional add_column calls for all config.fields on :create_table method"
+    should "run additional add_column calls for all config.fields on :create_table method" do
+      @source_class.undestroy_model_binding.config.add_field :deleted_by_id, :integer, 1
+      calls = []
+      callable = proc { |*args, &block| calls << [args, block] }
+      obj = subject.new :create_table, :source
+      obj.run!(callable)
+      assert_equal 3, calls.size
+      assert_equal [:create_table, 'archive_source', nil], calls[0].flatten
+      assert_equal [:add_column, 'archive_source', :deleted_at, :datetime, nil], calls[1].flatten
+      assert_equal [:add_column, 'archive_source', :deleted_by_id, :integer, nil], calls[2].flatten
+    end
 
   end
 

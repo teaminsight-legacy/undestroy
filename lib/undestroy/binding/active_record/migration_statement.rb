@@ -62,6 +62,12 @@ class Undestroy::Binding::ActiveRecord::MigrationStatement
 
   def run!(callable)
     callable.call(method_name, *target_arguments, &block)
+
+    if create_table?
+      config.fields.values.each do |field|
+        callable.call(:add_column, target_table_name, field.name, field.type)
+      end
+    end
   end
 
   protected
@@ -71,6 +77,10 @@ class Undestroy::Binding::ActiveRecord::MigrationStatement
   # in that case.
   def rename_table_exception?
     rename_table? && config.table_name
+  end
+
+  def create_table?
+    method_name == :create_table
   end
 
   def rename_table?
