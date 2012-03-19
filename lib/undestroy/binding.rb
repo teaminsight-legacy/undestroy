@@ -3,6 +3,7 @@ module Undestroy::Binding
 
   def self.bind
     Undestroy::Binding::ActiveRecord.add(::ActiveRecord::Base)
+    Undestroy::Binding::ActiveRecord::MigrationStatement.add(::ActiveRecord::Migration)
   end
 end
 
