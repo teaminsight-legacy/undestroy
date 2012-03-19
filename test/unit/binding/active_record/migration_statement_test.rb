@@ -26,6 +26,51 @@ module Undestroy::Binding::ActiveRecord::MigrationStatement::Test
     should have_accessor :method_name, :arguments, :block
   end
 
+  class AddClassMethod < Base
+    desc 'add class method'
+
+    setup do
+      @klass = Class.new do
+        @@method_missing_calls = []
+
+        def method_missing(*args, &block)
+          @@method_missing_calls << [args, block]
+        end
+
+        def self.method_missing_calls
+          @@method_missing_calls
+        end
+      end
+    end
+
+    should "add method method_missing_with_undestroy" do
+      subject.add(@klass)
+      assert_respond_to :method_missing_with_undestroy, @klass.new
+    end
+
+    should "alias original method_missing as method_missing_without_undestroy" do
+      subject.add(@klass)
+      assert @klass.new.method(:method_missing_without_undestroy)
+    end
+
+    should "always call original method_missing" do
+      subject.add(@klass)
+      @klass.new.foo(:bar) { }
+      assert_equal 1, @klass.method_missing_calls.size
+      assert_equal [:foo, :bar], @klass.method_missing_calls[0].first
+      assert_instance_of Proc, @klass.method_missing_calls[0].last
+    end
+
+    should "always create an instance of MethodStatement and call run! if run?" do
+      @source_class.table_name = 'source'
+      @source_class.undestroy
+      subject.add(@klass)
+      @klass.new.add_column :source, :foo, :string
+      assert_equal 2, @klass.method_missing_calls.size
+      assert_equal [:add_column, 'archive_source', :foo, :string], @klass.method_missing_calls[1].first
+    end
+  end
+
   class InitMethod < Base
     desc 'init method'
 
@@ -234,7 +279,7 @@ module Undestroy::Binding::ActiveRecord::MigrationStatement::Test
     end
 
     should "run additional add_column calls for all config.fields on :create_table method" do
-      @source_class.undestroy_model_binding.config.add_field :deleted_by_id, :integer, 1
+      config.add_field :deleted_by_id, :integer, 1
       calls = []
       callable = proc { |*args, &block| calls << [args, block] }
       obj = subject.new :create_table, :source

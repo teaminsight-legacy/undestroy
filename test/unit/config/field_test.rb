@@ -72,5 +72,15 @@ class Undestroy::Config::Field::Test
     end
   end
 
+  class SortOperator < Base
+    desc 'sort operator'
+
+    should "sort by alphanumeric field name" do
+      names = ["orange", :apple, "banana", "orange2"]
+      fields = names.collect { |name| Undestroy::Config::Field.new(name, :type, 'val') }
+      assert_equal names.collect(&:to_s).sort, fields.sort.collect { |f| f.name.to_s }
+    end
+  end
+
 end
 

@@ -12,6 +12,22 @@ class Undestroy::Binding::ActiveRecord::MigrationStatement
 
   attr_accessor :method_name, :arguments, :block
 
+  def self.add(klass=ActiveRecord::Migration)
+    klass.class_eval do
+
+      def method_missing_with_undestroy(method, *args, &block)
+        original = method(:method_missing_without_undestroy)
+        original.call method, *args, &block
+        stmt = Undestroy::Binding::ActiveRecord::MigrationStatement.new(method, *args, &block)
+        stmt.run!(original) if stmt.run?
+      end
+
+      alias :method_missing_without_undestroy :method_missing
+      alias :method_missing :method_missing_with_undestroy
+
+    end
+  end
+
   def initialize(method_name, *args, &block)
     self.method_name = method_name
     self.arguments = args
@@ -23,7 +39,7 @@ class Undestroy::Binding::ActiveRecord::MigrationStatement
   end
 
   def target_table_name
-    config.target_class.table_name
+    config.target_class.table_name if config
   end
 
   def config
@@ -64,7 +80,7 @@ class Undestroy::Binding::ActiveRecord::MigrationStatement
     callable.call(method_name, *target_arguments, &block)
 
     if create_table?
-      config.fields.values.each do |field|
+      config.fields.values.sort.each do |field|
         callable.call(:add_column, target_table_name, field.name, field.type)
       end
     end

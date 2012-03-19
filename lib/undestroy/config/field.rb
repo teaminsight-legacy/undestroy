@@ -2,6 +2,10 @@ class Undestroy::Config::Field
 
   attr_accessor :name, :type, :raw_value
 
+  def <=>(b)
+    name.to_s <=> b.name.to_s
+  end
+
   def initialize(name, type, value=nil, &block)
     self.name = name
     self.type = type
