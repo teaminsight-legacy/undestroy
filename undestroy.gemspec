@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
-require File.expand_path('../lib/undestroy/version', __FILE__)
+$: << File.expand_path('../lib', __FILE__)
+require 'undestroy/version'
 
 Gem::Specification.new do |gem|
   gem.authors       = ["Travis Petticrew"]
