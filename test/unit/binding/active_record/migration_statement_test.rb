@@ -73,6 +73,7 @@ module Undestroy::Binding::ActiveRecord::MigrationStatement::Test
 
   class InitMethod < Base
     desc 'init method'
+    include Undestroy::Test::Helpers::ModelLoading
 
     should "set required arg1 to method_name attr" do
       obj = subject.new :method
@@ -89,6 +90,15 @@ module Undestroy::Binding::ActiveRecord::MigrationStatement::Test
       obj = subject.new :method, &block
       assert_equal block, obj.block
       assert_equal "FOOO", obj.block.call
+    end
+
+    should "call load_models on all Config.config.model_paths if not loaded yet" do
+      path = Undestroy::Test.fixtures_path('load_test', 'models2')
+      Undestroy::Config.config.model_paths = [path]
+      assert_loads_models(path) do
+        subject.new :method
+      end
+      Undestroy::Config.config.model_paths = []
     end
   end
 

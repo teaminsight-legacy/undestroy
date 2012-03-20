@@ -1,7 +1,7 @@
 class Undestroy::Config
   OPTIONS = [
     :table_name, :abstract_class, :fields, :migrate, :indexes, :prefix,
-    :source_class, :target_class, :internals
+    :source_class, :target_class, :internals, :model_paths
   ]
   attr_accessor *OPTIONS
 
@@ -10,6 +10,7 @@ class Undestroy::Config
     self.migrate = true
     self.prefix = "archive_"
     self.fields = {}
+    self.model_paths = []
     self.internals = {
       :archive => Undestroy::Archive,
       :transfer => Undestroy::Transfer,
@@ -18,6 +19,9 @@ class Undestroy::Config
     add_field :deleted_at, :datetime do |instance|
       Time.now
     end
+
+    # Default for Rails apps
+    self.model_paths << Rails.root.join('app', 'models') if defined?(Rails)
 
     options.each do |key, value|
       self[key] = value

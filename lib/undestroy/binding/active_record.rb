@@ -61,6 +61,12 @@ class Undestroy::Binding::ActiveRecord
     end unless klass.respond_to?(:undestroy_model_binding)
   end
 
+  def self.load_models(path)
+    Dir[File.join(path, '**', '*.rb')].each do |file|
+      require_dependency file
+    end
+  end
+
 end
 
 require 'undestroy/binding/active_record/migration_statement'

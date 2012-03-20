@@ -89,6 +89,19 @@ module Undestroy::Binding::ActiveRecord::Test
     end
   end
 
+  class LoadModelsClassMethod < Base
+    desc 'load_models class method'
+    include Undestroy::Test::Helpers::ModelLoading
+
+    should "force all models to load recursively in supplied path" do
+      path = Undestroy::Test.fixtures_path('load_test', 'models1')
+      assert_loads_models(path) do
+        subject.load_models(path)
+      end
+    end
+
+  end
+
   class InitMethod < Base
     desc 'init method'
 

@@ -88,7 +88,7 @@ class Undestroy::Config::Test
     subject { Undestroy::Config.new }
 
     should have_accessors :table_name, :abstract_class, :fields, :migrate, :indexes, :prefix
-    should have_accessors :source_class, :target_class, :internals
+    should have_accessors :source_class, :target_class, :internals, :model_paths
   end
 
   class InitMethod < Base
@@ -123,6 +123,28 @@ class Undestroy::Config::Test
     should "default prefix to 'archive_'" do
       config = subject.new
       assert_equal 'archive_', config.prefix
+    end
+
+    should "default model_paths to [] if Rails is not defined" do
+      config = subject.new
+      assert_equal [], config.model_paths
+    end
+
+    should "default model_paths to [Rails.root.join('app', 'models')] if Rails is defined" do
+      module ::Rails
+        @@base_root = "/foo/bar"
+        def self.root
+          self
+        end
+
+        def self.join(*args)
+          File.join(@@base_root, *args)
+        end
+      end
+
+      config = subject.new
+      assert_equal ["/foo/bar/app/models"], config.model_paths
+      Object.send(:remove_const, :Rails)
     end
 
     should "set config options using provided hash" do

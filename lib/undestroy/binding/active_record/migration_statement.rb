@@ -29,6 +29,7 @@ class Undestroy::Binding::ActiveRecord::MigrationStatement
   end
 
   def initialize(method_name, *args, &block)
+    self.class.ensure_models_loaded
     self.method_name = method_name
     self.arguments = args
     self.block = block
@@ -86,6 +87,12 @@ class Undestroy::Binding::ActiveRecord::MigrationStatement
     end
   end
 
+  def self.ensure_models_loaded
+    Undestroy::Config.config.model_paths.each do |path|
+      Undestroy::Binding::ActiveRecord.load_models(path)
+    end
+  end
+
   protected
 
   # We don't want to run rename_table on the target when the table name is
@@ -106,5 +113,6 @@ class Undestroy::Binding::ActiveRecord::MigrationStatement
   def binding
     config.source_class.undestroy_model_binding
   end
+
 end
 
