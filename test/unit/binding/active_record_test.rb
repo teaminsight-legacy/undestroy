@@ -130,6 +130,7 @@ module Undestroy::Binding::ActiveRecord::Test
       end
       assert_equal Hash.new, subject.new(@model).config.fields
       assert_not_equal subject.new(@model).config.object_id, Undestroy::Config.config.object_id
+      assert_not_equal subject.new(@model).config.fields.object_id, Undestroy::Config.config.fields.object_id
       assert_equal({ :foo => :bar }, subject.new(@model, :fields => { :foo => :bar }).config.fields)
     end
 

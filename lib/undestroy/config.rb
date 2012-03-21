@@ -24,7 +24,7 @@ class Undestroy::Config
     self.model_paths << Rails.root.join('app', 'models') if defined?(Rails)
 
     options.each do |key, value|
-      self[key] = value
+      self[key] = value.duplicable? ? value.dup : value
     end
 
     self.class.catalog << self

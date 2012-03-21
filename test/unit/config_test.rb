@@ -130,6 +130,13 @@ class Undestroy::Config::Test
       assert_equal [], config.model_paths
     end
 
+    should "dup passed in objects" do
+      fields = {}
+      config = subject.new :fields => fields
+      config.add_field :foo, :bar, :baz
+      assert fields.empty?
+    end
+
     should "default model_paths to [Rails.root.join('app', 'models')] if Rails is defined" do
       module ::Rails
         @@base_root = "/foo/bar"
