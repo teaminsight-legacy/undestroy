@@ -113,6 +113,7 @@ class Undestroy::Config::Test
       assert_instance_of Hash, config.internals
       assert_equal Undestroy::Archive, config.internals[:archive]
       assert_equal Undestroy::Transfer, config.internals[:transfer]
+      assert_equal Undestroy::Restore, config.internals[:restore]
     end
 
     should "default indexes to false" do

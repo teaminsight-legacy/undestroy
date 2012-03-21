@@ -14,6 +14,7 @@ class Undestroy::Config
     self.internals = {
       :archive => Undestroy::Archive,
       :transfer => Undestroy::Transfer,
+      :restore => Undestroy::Restore
     }
 
     add_field :deleted_at, :datetime do |instance|
