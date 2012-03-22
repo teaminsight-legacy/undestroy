@@ -1,23 +1,33 @@
 class Undestroy::Config
   OPTIONS = [
-    :table_name, :abstract_class, :fields, :migrate,
-    :source_class, :target_class, :internals
+    :table_name, :abstract_class, :fields, :migrate, :indexes, :prefix,
+    :source_class, :target_class, :internals, :model_paths
   ]
   attr_accessor *OPTIONS
 
   def initialize(options={})
+    self.indexes = false
     self.migrate = true
-    self.fields = {
-      :deleted_at => proc { Time.now }
-    }
+    self.prefix = "archive_"
+    self.fields = {}
+    self.model_paths = []
     self.internals = {
       :archive => Undestroy::Archive,
       :transfer => Undestroy::Transfer,
     }
 
-    options.each do |key, value|
-      self[key] = value
+    add_field :deleted_at, :datetime do |instance|
+      Time.now
     end
+
+    # Default for Rails apps
+    self.model_paths << Rails.root.join('app', 'models') if defined?(Rails)
+
+    options.each do |key, value|
+      self[key] = value.duplicable? ? value.dup : value
+    end
+
+    self.class.catalog << self
   end
 
   def [](key)
@@ -37,9 +47,13 @@ class Undestroy::Config
   end
 
   def primitive_fields(object)
-    self.fields.inject({}) do |hash, (key, val)|
-      hash.merge(key => val.is_a?(Proc) ? val.call(object) : val)
+    self.fields.inject({}) do |hash, (key, field)|
+      hash.merge(key => field.value(object))
     end
+  end
+
+  def add_field(name, *args, &block)
+    self.fields[name] = Field.new(name, *args, &block)
   end
 
   def self.configure
@@ -50,5 +64,14 @@ class Undestroy::Config
     @config ||= self.new
   end
 
+  def self.catalog
+    @@catalog ||= []
+  end
+
+  def self.reset_catalog
+    @@catalog = []
+  end
+
 end
 
+require 'undestroy/config/field'

@@ -53,12 +53,42 @@ class Undestroy::Config::Test
     end
   end
 
+  class CatalogClassMethod < Base
+    desc 'catalog class method'
+
+    should "exist" do
+      assert_respond_to :catalog, subject
+    end
+
+    should "return Array" do
+      assert_kind_of Array, subject.catalog
+    end
+
+    should "persist Array" do
+      assert_equal subject.catalog.object_id, subject.catalog.object_id
+    end
+  end
+
+  class ResetCatalogClassMethod < Base
+    desc 'reset_catalog class method'
+
+    should "exist" do
+      assert_respond_to :reset_catalog, subject
+    end
+
+    should "reset catalog cache" do
+      catalog = subject.catalog
+      subject.reset_catalog
+      assert_not_equal catalog.object_id, subject.catalog.object_id
+    end
+  end
+
   class BasicInstance < Base
     desc 'basic instance'
     subject { Undestroy::Config.new }
 
-    should have_accessors :table_name, :abstract_class, :fields, :migrate
-    should have_accessors :source_class, :target_class, :internals
+    should have_accessors :table_name, :abstract_class, :fields, :migrate, :indexes, :prefix
+    should have_accessors :source_class, :target_class, :internals, :model_paths
   end
 
   class InitMethod < Base
@@ -72,9 +102,9 @@ class Undestroy::Config::Test
     should "default fields to delayed deleted_at" do
       config = subject.new
       assert_equal [:deleted_at], config.fields.keys
-      assert_instance_of Proc, config.fields[:deleted_at]
-      assert_instance_of Time, config.fields[:deleted_at].call
-      assert Time.now - config.fields[:deleted_at].call < 1
+      assert_instance_of Undestroy::Config::Field, config.fields[:deleted_at]
+      assert_instance_of Time, config.fields[:deleted_at].value(1)
+      assert Time.now - config.fields[:deleted_at].value(1)< 1
     end
 
     should "default internals to internal classes" do
@@ -85,18 +115,64 @@ class Undestroy::Config::Test
       assert_equal Undestroy::Transfer, config.internals[:transfer]
     end
 
+    should "default indexes to false" do
+      config = subject.new
+      assert_equal false, config.indexes
+    end
+
+    should "default prefix to 'archive_'" do
+      config = subject.new
+      assert_equal 'archive_', config.prefix
+    end
+
+    should "default model_paths to [] if Rails is not defined" do
+      config = subject.new
+      assert_equal [], config.model_paths
+    end
+
+    should "dup passed in objects" do
+      fields = {}
+      config = subject.new :fields => fields
+      config.add_field :foo, :bar, :baz
+      assert fields.empty?
+    end
+
+    should "default model_paths to [Rails.root.join('app', 'models')] if Rails is defined" do
+      module ::Rails
+        @@base_root = "/foo/bar"
+        def self.root
+          self
+        end
+
+        def self.join(*args)
+          File.join(@@base_root, *args)
+        end
+      end
+
+      config = subject.new
+      assert_equal ["/foo/bar/app/models"], config.model_paths
+      Object.send(:remove_const, :Rails)
+    end
+
     should "set config options using provided hash" do
       config = subject.new :table_name => "foo",
         :abstract_class => "test_archive",
         :target_class => "foo",
         :fields => {},
-        :migrate => false
+        :migrate => false,
+        :indexes => true
 
       assert_equal "foo", config.table_name
       assert_equal "foo", config.target_class
       assert_equal "test_archive", config.abstract_class
       assert_equal Hash.new, config.fields
       assert_equal false, config.migrate
+      assert_equal true, config.indexes
+    end
+
+    should "track instances in catalog" do
+      config = subject.new
+      assert_includes config, subject.catalog
     end
 
   end
@@ -118,7 +194,7 @@ class Undestroy::Config::Test
   end
 
 
-  class PrimitiveFields < Base
+  class PrimitiveFieldsMethod < Base
     desc 'primitive_fields method'
     subject { @config ||= Undestroy::Config.new }
 
@@ -137,9 +213,33 @@ class Undestroy::Config::Test
 
     should "pass argument in to proc" do
       val = {}
-      subject.fields = { :test => proc { |arg| val[:arg] = arg } }
+      subject.fields = { :test => Undestroy::Config::Field.new(:test, :string) { |arg| val[:arg] = arg } }
       subject.primitive_fields("FOOO!")
       assert_equal "FOOO!", val[:arg]
+    end
+  end
+
+  class AddFieldMethod < Base
+    desc 'add_field method'
+    subject { @config ||= Undestroy::Config.new }
+
+    should "pass args to Config::Field constructor" do
+      field = subject.add_field :foo, :string, 'val'
+      assert_instance_of Undestroy::Config::Field, field
+      assert_equal :foo, field.name
+      assert_equal :string, field.type
+      assert_equal 'val', field.raw_value
+    end
+
+    should "pass block to Config::Field constructor" do
+      block = proc { |i| "foo" }
+      field = subject.add_field :foo, :string, &block
+      assert_equal block, field.raw_value
+    end
+
+    should "store new Field on fields hash" do
+      field = subject.add_field :foo, :string, 'val'
+      assert_equal field, subject.fields[:foo]
     end
   end
 

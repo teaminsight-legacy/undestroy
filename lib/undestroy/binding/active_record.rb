@@ -1,6 +1,7 @@
 require 'active_record'
 
 class Undestroy::Binding::ActiveRecord
+
   attr_accessor :config, :model
 
   def initialize(model, options={})
@@ -8,6 +9,7 @@ class Undestroy::Binding::ActiveRecord
 
     self.model = model
     self.config = Undestroy::Config.config.merge(options)
+    yield self.config if block_given?
 
     set_defaults
   end
@@ -16,11 +18,15 @@ class Undestroy::Binding::ActiveRecord
     config.internals[:archive].new(:config => config, :source => instance).run
   end
 
+  def prefix_table_name(name)
+    self.config.prefix.to_s + name.to_s
+  end
+
   protected
 
   def set_defaults
     self.config.source_class = self.model
-    self.config.table_name ||= table_prefix + self.model.table_name if self.model.respond_to?(:table_name)
+    self.config.table_name ||= prefix_table_name(self.model.table_name) if self.model.respond_to?(:table_name)
     self.config.target_class ||= create_target_class
     ensure_is_ar! self.config.target_class
   end
@@ -30,10 +36,6 @@ class Undestroy::Binding::ActiveRecord
     Class.new(self.config.abstract_class || ActiveRecord::Base).tap do |target_class|
       target_class.table_name = self.config.table_name
     end
-  end
-
-  def table_prefix
-    "archive_"
   end
 
   def ensure_is_ar!(klass)
@@ -59,5 +61,13 @@ class Undestroy::Binding::ActiveRecord
     end unless klass.respond_to?(:undestroy_model_binding)
   end
 
+  def self.load_models(path)
+    Dir[File.join(path, '**', '*.rb')].each do |file|
+      require_dependency file
+    end
+  end
+
 end
+
+require 'undestroy/binding/active_record/migration_statement'
 

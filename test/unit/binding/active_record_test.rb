@@ -89,6 +89,19 @@ module Undestroy::Binding::ActiveRecord::Test
     end
   end
 
+  class LoadModelsClassMethod < Base
+    desc 'load_models class method'
+    include Undestroy::Test::Helpers::ModelLoading
+
+    should "force all models to load recursively in supplied path" do
+      path = Undestroy::Test.fixtures_path('load_test', 'models1')
+      assert_loads_models(path) do
+        subject.load_models(path)
+      end
+    end
+
+  end
+
   class InitMethod < Base
     desc 'init method'
 
@@ -117,7 +130,15 @@ module Undestroy::Binding::ActiveRecord::Test
       end
       assert_equal Hash.new, subject.new(@model).config.fields
       assert_not_equal subject.new(@model).config.object_id, Undestroy::Config.config.object_id
+      assert_not_equal subject.new(@model).config.fields.object_id, Undestroy::Config.config.fields.object_id
       assert_equal({ :foo => :bar }, subject.new(@model, :fields => { :foo => :bar }).config.fields)
+    end
+
+    should "accept block and pass config object to it" do
+      binding = subject.new @model, {} do |config|
+        config.fields = {}
+      end
+      assert_equal Hash.new, binding.config.fields
     end
 
     should "set config.source_class to value of model" do
@@ -125,10 +146,10 @@ module Undestroy::Binding::ActiveRecord::Test
       assert_equal @model, binding.config.source_class
     end
 
-    should "default :table_name to 'archive_{source.table_name}'" do
+    should "default :table_name to '{config.prefix}{source.table_name}'" do
       @model.table_name = :foobar
-      binding = subject.new(@model)
-      assert_equal 'archive_foobar', binding.config.table_name
+      binding = subject.new(@model, :prefix => "prefix_archive_")
+      assert_equal 'prefix_archive_foobar', binding.config.table_name
     end
 
     should "create a target_class if none provided" do
@@ -181,6 +202,16 @@ module Undestroy::Binding::ActiveRecord::Test
 
       assert_equal({ :config => subject.config, :source => ar_source }, test_class.data[:args])
       assert_equal [[:run]], test_class.data[:calls]
+    end
+  end
+
+  class PrefixTableNameMethod < Base
+    desc 'prefix_table_name method'
+    subject { @binding ||= Undestroy::Binding::ActiveRecord.new(@model) }
+
+    should "return {config.prefix}{source.table_name}" do
+      subject.config.prefix = "archive_prefix_"
+      assert_equal "archive_prefix_foo", subject.prefix_table_name("foo")
     end
   end
 

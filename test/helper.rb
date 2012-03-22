@@ -15,6 +15,10 @@ module Undestroy::Test
 
   class Base < Assert::Context
 
+    teardown do
+      Undestroy::Config.reset_catalog
+    end
+
     teardown_once do
       `rm -f tmp/*.db`
     end
@@ -31,6 +35,10 @@ module Undestroy::Test
     establish_connection 'alt'
   end
 
+  module Helpers
+    autoload :ModelLoading, 'test/helpers/model_loading'
+  end
+
   module Integration
   end
 
@@ -38,6 +46,10 @@ module Undestroy::Test
     autoload :ActiveRecordModels, 'test/fixtures/active_record_models'
     autoload :ARFixture, 'test/fixtures/ar'
     autoload :Archive, 'test/fixtures/archive'
+  end
+
+  def self.fixtures_path(*paths)
+    File.join(File.expand_path(File.join(File.dirname(__FILE__), 'fixtures')), *paths)
   end
 end
 
