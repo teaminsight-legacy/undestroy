@@ -16,7 +16,7 @@ module Undestroy::Test::Integration::ActiveRecordTest
     desc 'extensions'
 
     should "add extensions to AR" do
-      assert_respond_to :undestroy_model_binding, ActiveRecord::Base
+      assert_respond_to :undestroy, ActiveRecord::Base
     end
 
     should "add alias method chain in method_missing on AR::Migration" do

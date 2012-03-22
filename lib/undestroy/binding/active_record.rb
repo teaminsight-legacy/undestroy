@@ -49,16 +49,28 @@ class Undestroy::Binding::ActiveRecord
   # Add binding to the given class if it doesn't already have it
   def self.add(klass=ActiveRecord::Base)
     klass.class_eval do
-      class_attribute :undestroy_model_binding, :instance_writer => false
 
       def self.undestroy(options={})
-        before_destroy do
-          self.undestroy_model_binding.before_destroy(self) if undestroy_model_binding
-        end unless self.undestroy_model_binding
+        class_eval do
+          class_attribute :undestroy_model_binding, :instance_writer => false
+
+          before_destroy { undestroy_model_binding.before_destroy(self) }
+
+          def self.archived
+            undestroy_model_binding.config.target_class
+          end
+
+          def self.restore(*args)
+            [*archived.find(*args)].each(&:restore)
+          end
+
+        end unless respond_to?(:undestroy_model_binding)
+
         self.undestroy_model_binding = Undestroy::Binding::ActiveRecord.new(self, options)
       end
 
-    end unless klass.respond_to?(:undestroy_model_binding)
+
+    end unless klass.respond_to?(:undestroy)
   end
 
   def self.load_models(path)
@@ -70,4 +82,5 @@ class Undestroy::Binding::ActiveRecord
 end
 
 require 'undestroy/binding/active_record/migration_statement'
+require 'undestroy/binding/active_record/restorable'
 
