@@ -2,7 +2,8 @@ require 'active_record'
 
 class Undestroy::Binding::ActiveRecord
 
-  attr_accessor :config, :model
+  attr_accessor :config, :model, :active
+  alias :active? :active
 
   def initialize(model, options={})
     ensure_is_ar! model
@@ -10,6 +11,7 @@ class Undestroy::Binding::ActiveRecord
     self.model = model
     self.config = Undestroy::Config.config.merge(options)
     yield self.config if block_given?
+    self.active = true
 
     set_defaults
   end
@@ -20,6 +22,14 @@ class Undestroy::Binding::ActiveRecord
 
   def prefix_table_name(name)
     self.config.prefix.to_s + name.to_s
+  end
+
+  def deactivated
+    previously = self.active
+    self.active = false
+    yield
+  ensure
+    self.active = previously
   end
 
   protected
@@ -65,6 +75,12 @@ class Undestroy::Binding::ActiveRecord
 
           def self.restore(*args)
             [*archived.find(*args)].each(&:restore)
+          end
+
+          def destroy!
+            undestroy_model_binding.deactivated do
+              destroy
+            end
           end
 
         end unless respond_to?(:undestroy_model_binding)
