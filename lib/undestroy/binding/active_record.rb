@@ -35,6 +35,9 @@ class Undestroy::Binding::ActiveRecord
   def create_target_class
     Class.new(self.config.abstract_class || ActiveRecord::Base).tap do |target_class|
       target_class.table_name = self.config.table_name
+      target_class.class_attribute :undestroy_model_binding, :instance_writer => false
+      target_class.undestroy_model_binding = self
+      target_class.send :include, Restorable
     end
   end
 

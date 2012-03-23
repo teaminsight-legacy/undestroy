@@ -11,7 +11,7 @@ module Undestroy::Restore::Test
       @target_class = Class.new(Undestroy::Test::Fixtures::ARFixture)
       @subject_klass = Undestroy::Restore
       @default_init = {
-        :target => @target_class.construct(:id => 1, :name => "Foo", :deleted_at => Time.now),
+        :target => @target_class.construct(:id => 1, 'name' => "Foo", :deleted_at => Time.now),
         :config => Undestroy::Config.new(
           :source_class => @source_class,
           :target_class => @target_class
@@ -56,12 +56,15 @@ module Undestroy::Restore::Test
     end
 
     should ":fields should be target.attributes - config.fields.keys" do
-      assert_equal({ :id => 1, :name => "Foo" }, subject.transfer.target.attributes)
+      subject.config.add_field 'deleted_by_id', :string, 'foo'
+      @default_init[:target]['deleted_by_id'] = "Foo"
+      assert_equal({ 'id' => 1, 'name' => "Foo" }, subject.transfer.target.attributes)
     end
 
     should "cache transfer object" do
       assert_equal subject.transfer.object_id, subject.transfer.object_id
     end
+
   end
 
   class RunMethod < BasicInstance

@@ -54,7 +54,7 @@ class Undestroy::Config
   end
 
   def add_field(name, *args, &block)
-    self.fields[name] = Field.new(name, *args, &block)
+    self.fields[name.to_sym] = Field.new(name, *args, &block)
   end
 
   def self.configure

@@ -243,6 +243,24 @@ module Undestroy::Binding::ActiveRecord::Test
       assert_equal 'tmp/alt.db', binding.config.target_class.connection_config[:database]
     end
 
+    should "create class_attribute undestroy_model_binding with no instance writer" do
+      binding = subject.new(@model)
+      assert_respond_to :undestroy_model_binding, binding.config.target_class
+      assert_respond_to :undestroy_model_binding=, binding.config.target_class
+      assert_respond_to :undestroy_model_binding, binding.config.target_class.new
+      assert_not_respond_to :undestroy_model_binding=, binding.config.target_class.new
+    end
+
+    should "set self to the undestroy_model_binding on the target_class" do
+      binding = subject.new(@model)
+      assert_equal binding, binding.config.target_class.undestroy_model_binding
+    end
+
+    should "include Restorable mixin" do
+      binding = subject.new(@model)
+      assert_includes Undestroy::Binding::ActiveRecord::Restorable, binding.config.target_class.ancestors
+    end
+
   end
 
   class BeforeDestroy < Base

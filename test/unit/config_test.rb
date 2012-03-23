@@ -242,6 +242,11 @@ class Undestroy::Config::Test
       field = subject.add_field :foo, :string, 'val'
       assert_equal field, subject.fields[:foo]
     end
+
+    should "store field name as symbol" do
+      field = subject.add_field 'foo', :string, 'val'
+      assert_equal field, subject.fields[:foo]
+    end
   end
 
 end

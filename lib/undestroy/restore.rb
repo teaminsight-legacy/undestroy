@@ -32,7 +32,7 @@ class Undestroy::Restore
 
   def transfer_fields
     self.target.attributes.inject({}) do |hash, (key, value)|
-      if config.fields.keys.include?(key)
+      if config.fields.keys.include?(key.to_sym)
         hash
       else
         hash.merge(key => value)
