@@ -36,20 +36,13 @@ module Undestroy::Binding::ActiveRecord::Test
         undef_method :undestroy_model_binding if respond_to?(:undestroy_model_binding)
         remove_possible_method :undestroy_model_binding=
         class << self
-          undef_method :undestroy_model_binding
           undef_method :undestroy
         end
       end
       @model._destroy_callbacks = []
     end
 
-    should "add class_attr called `undestroy_model_binding`" do
-      subject.add @model
-      assert_respond_to :undestroy_model_binding, @model
-      assert_respond_to :undestroy_model_binding=, @model
-    end
-
-    should "add undestroy class method to AR::Base initializing this binding" do
+    should "add undestroy class method to klass initializing this binding" do
       subject.add @model
       assert_respond_to :undestroy, @model
 
@@ -59,8 +52,31 @@ module Undestroy::Binding::ActiveRecord::Test
       assert_equal Hash.new, @model.undestroy_model_binding.config.fields
     end
 
-    should "add before_destroy callback when undestroy called" do
+    should "allow adding to other classes" do
+      new_model = Class.new(@model)
+      subject.add(new_model)
+      assert_respond_to :undestroy, new_model
+      assert_not_respond_to :undestroy, @model
+    end
+
+  end
+
+  class UndestroyExtensionMethod < AddClassMethod
+    desc 'added undestroy method'
+
+    setup do
       subject.add @model
+    end
+
+    should "add class_attr called `undestroy_model_binding`" do
+      assert_not_respond_to :undestroy_model_binding, @model
+      assert_not_respond_to :undestroy_model_binding=, @model
+      @model.undestroy
+      assert_respond_to :undestroy_model_binding, @model
+      assert_respond_to :undestroy_model_binding=, @model
+    end
+
+    should "add before_destroy callback when undestroy called" do
       archive_class = Undestroy::Test::Fixtures::Archive
       @model.undestroy :internals => { :archive => archive_class }
 
@@ -75,17 +91,61 @@ module Undestroy::Binding::ActiveRecord::Test
     end
 
     should "only add callbacks once" do
-      subject.add @model
       @model.undestroy
       @model.undestroy
       assert_equal 1, @model._destroy_callbacks.size
     end
 
-    should "allow adding to other classes" do
-      new_model = Class.new(@model)
-      subject.add(new_model)
-      assert_respond_to :undestroy_model_binding, new_model
-      assert_not_respond_to :undestroy_model_binding, @model
+    should "add archived class method" do
+      assert_not_respond_to :archived, @model
+      @model.undestroy
+      assert_respond_to :archived, @model
+    end
+
+    should "add archived method that returns configured target_class after undestroy configured" do
+      @model.undestroy
+      assert_equal @model.undestroy_model_binding.config.target_class, @model.archived
+    end
+
+    should "add restore method" do
+      assert_not_respond_to :restore, @model
+      @model.undestroy
+      assert_respond_to :restore, @model
+    end
+
+    should "add restore method that passes args to target_class find and then calls 'restore' on each record" do
+      @model.undestroy
+      fixture = Class.new do
+        cattr_accessor :calls, :return_val
+        self.calls = []
+        self.return_val = nil
+
+        def self.find(*args)
+          self.calls << [:find, args]
+          self.return_val
+        end
+
+        def restore
+          self.calls << [:restore]
+        end
+      end
+
+      @model.undestroy_model_binding.config.target_class = fixture
+
+      fixture.return_val = fixture.new
+      @model.restore(:foo, :bar => :baz)
+
+      assert_equal [:find, [:foo, { :bar => :baz }]], fixture.calls[0]
+      assert_equal [:restore], fixture.calls[1]
+
+      fixture.calls = []
+
+      fixture.return_val = [fixture.new, fixture.new]
+      @model.restore
+
+      assert_equal [:restore], fixture.calls[1]
+      assert_equal [:restore], fixture.calls[2]
+      assert_nil fixture.calls[3]
     end
   end
 
@@ -181,6 +241,24 @@ module Undestroy::Binding::ActiveRecord::Test
       @model.table_name = :foobar
       binding = subject.new(@model, :abstract_class => Undestroy::Test::ARAlt)
       assert_equal 'tmp/alt.db', binding.config.target_class.connection_config[:database]
+    end
+
+    should "create class_attribute undestroy_model_binding with no instance writer" do
+      binding = subject.new(@model)
+      assert_respond_to :undestroy_model_binding, binding.config.target_class
+      assert_respond_to :undestroy_model_binding=, binding.config.target_class
+      assert_respond_to :undestroy_model_binding, binding.config.target_class.new
+      assert_not_respond_to :undestroy_model_binding=, binding.config.target_class.new
+    end
+
+    should "set self to the undestroy_model_binding on the target_class" do
+      binding = subject.new(@model)
+      assert_equal binding, binding.config.target_class.undestroy_model_binding
+    end
+
+    should "include Restorable mixin" do
+      binding = subject.new(@model)
+      assert_includes Undestroy::Binding::ActiveRecord::Restorable, binding.config.target_class.ancestors
     end
 
   end

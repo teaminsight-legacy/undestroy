@@ -16,7 +16,7 @@ module Undestroy::Test::Integration::ActiveRecordTest
     desc 'extensions'
 
     should "add extensions to AR" do
-      assert_respond_to :undestroy_model_binding, ActiveRecord::Base
+      assert_respond_to :undestroy, ActiveRecord::Base
     end
 
     should "add alias method chain in method_missing on AR::Migration" do
@@ -83,6 +83,50 @@ module Undestroy::Test::Integration::ActiveRecordTest
       assert_kind_of Time, archive.deleted_at
       assert (Time.now - archive.deleted_at) < 1.second
       assert_equal 0, @model.all.size
+    end
+
+    should "restore an archived record removing the archive" do
+      @model.undestroy
+      @model.create(:name => "Fart")
+      original = @model.first
+      original.destroy
+
+      assert_equal 0, @model.count
+      @model.restore(1)
+
+      assert_equal 0, @model.archived.count
+      assert_equal 1, @model.count
+      assert_equal 1, @model.first.id
+      assert_equal "Fart", @model.first.name
+    end
+
+    should "restore an archived record and leave the archive when restore_copy called" do
+      @model.undestroy
+      @model.create(:name => "Fart")
+      original = @model.first
+      original.destroy
+
+      assert_equal 0, @model.count
+      @model.archived.first.restore_copy
+
+      assert_equal 1, @model.archived.count
+      assert_equal 1, @model.count
+    end
+
+    should "restore a relation of items when restore_all called" do
+      @model.undestroy
+      @model.create(:name => "Bobby")
+      @model.create(:name => "Billy")
+      @model.create(:name => "Jan")
+
+      assert_equal 3, @model.count
+      @model.destroy_all
+      assert_equal 0, @model.count
+
+      @model.archived.where("name LIKE ?", "B%").restore_all
+
+      assert_equal 2, @model.count
+      assert_equal 1, @model.archived.count
     end
   end
 

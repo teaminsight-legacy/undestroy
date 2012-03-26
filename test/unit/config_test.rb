@@ -113,6 +113,7 @@ class Undestroy::Config::Test
       assert_instance_of Hash, config.internals
       assert_equal Undestroy::Archive, config.internals[:archive]
       assert_equal Undestroy::Transfer, config.internals[:transfer]
+      assert_equal Undestroy::Restore, config.internals[:restore]
     end
 
     should "default indexes to false" do
@@ -239,6 +240,11 @@ class Undestroy::Config::Test
 
     should "store new Field on fields hash" do
       field = subject.add_field :foo, :string, 'val'
+      assert_equal field, subject.fields[:foo]
+    end
+
+    should "store field name as symbol" do
+      field = subject.add_field 'foo', :string, 'val'
       assert_equal field, subject.fields[:foo]
     end
   end

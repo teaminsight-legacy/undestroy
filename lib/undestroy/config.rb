@@ -14,6 +14,7 @@ class Undestroy::Config
     self.internals = {
       :archive => Undestroy::Archive,
       :transfer => Undestroy::Transfer,
+      :restore => Undestroy::Restore
     }
 
     add_field :deleted_at, :datetime do |instance|
@@ -53,7 +54,7 @@ class Undestroy::Config
   end
 
   def add_field(name, *args, &block)
-    self.fields[name] = Field.new(name, *args, &block)
+    self.fields[name.to_sym] = Field.new(name, *args, &block)
   end
 
   def self.configure

@@ -7,21 +7,25 @@ class Undestroy::Test::Fixtures::ARFixture
 
   def initialize(attributes={})
     @saved = false
-    self.attributes = attributes.dup
+    self.attributes = HashWithIndifferentAccess.new(attributes)
     self.attributes.delete(:id)
   end
 
   def [](key)
-    self.attributes[key.to_sym]
+    @attributes[key]
   end
 
   def []=(key, val)
-    self.attributes[key.to_sym] = val
+    @attributes[key] = val
   end
 
   # Method missing won't catch this one
   def id
-    self.attributes[:id]
+    self[:id]
+  end
+
+  def attributes
+    @attributes.stringify_keys
   end
 
   def save
