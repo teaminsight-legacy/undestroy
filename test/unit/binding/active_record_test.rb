@@ -25,7 +25,15 @@ module Undestroy::Binding::ActiveRecord::Test
     desc 'basic instance'
     subject { Undestroy::Binding::ActiveRecord.new @model }
 
-    should have_accessors :config, :model
+    should have_accessors :config, :model, :active
+
+    should "have instance method :active? as alias for :active" do
+      obj = subject
+      obj.active = false
+      assert_equal false, obj.active?
+      obj.active = true
+      assert_equal true, obj.active?
+    end
   end
 
   class AddClassMethod < Base
@@ -147,6 +155,23 @@ module Undestroy::Binding::ActiveRecord::Test
       assert_equal [:restore], fixture.calls[2]
       assert_nil fixture.calls[3]
     end
+
+    should "add destroy! instance method that calls destroy without archival" do
+      @model.class_eval do
+        cattr_accessor :calls
+        self.calls = []
+
+        def destroy
+          calls << [:destroy, undestroy_model_binding.active]
+        end
+      end
+      @model.undestroy
+      assert_respond_to :destroy!, @model.new
+
+      @model.new.destroy!
+
+      assert_equal [:destroy, false], @model.calls[0]
+    end
   end
 
   class LoadModelsClassMethod < Base
@@ -182,6 +207,10 @@ module Undestroy::Binding::ActiveRecord::Test
     should "set config attr to new config object" do
       binding = subject.new @model
       assert_instance_of Undestroy::Config, binding.config
+    end
+
+    should "default :active attr to true" do
+      assert subject.new(@model).active, "Should be active by default"
     end
 
     should "merge config options onto global config" do
@@ -290,6 +319,36 @@ module Undestroy::Binding::ActiveRecord::Test
     should "return {config.prefix}{source.table_name}" do
       subject.config.prefix = "archive_prefix_"
       assert_equal "archive_prefix_foo", subject.prefix_table_name("foo")
+    end
+  end
+
+  class DeactivatedMethod < Base
+    desc 'deactivated method'
+    subject { @binding ||= Undestroy::Binding::ActiveRecord.new(@model) }
+
+    should "set activated to false and yield to block" do
+      called = false
+      block = proc {
+        called = true
+        assert !subject.active, "Binding should be deactivated"
+      }
+      subject.deactivated(&block)
+      assert called, "Block should be called"
+    end
+
+    should "always set activated back to original value" do
+      block = proc {}
+      raise_block = proc { raise "FOO" }
+
+      subject.deactivated(&block)
+      assert subject.active, "Should be activated"
+
+      assert_raises { subject.deactivated(&raise_block) }
+      assert subject.active, "Should be activated"
+
+      subject.active = false
+      subject.deactivated(&block)
+      assert !subject.active, "Should not be activated"
     end
   end
 
