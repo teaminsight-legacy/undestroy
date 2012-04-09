@@ -17,7 +17,7 @@ class Undestroy::Binding::ActiveRecord
   end
 
   def before_destroy(instance)
-    config.internals[:archive].new(:config => config, :source => instance).run
+    config.internals[:archive].new(:config => config, :source => instance).run if active?
   end
 
   def prefix_table_name(name)

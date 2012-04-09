@@ -310,6 +310,15 @@ module Undestroy::Binding::ActiveRecord::Test
       assert_equal({ :config => subject.config, :source => ar_source }, test_class.data[:args])
       assert_equal [[:run]], test_class.data[:calls]
     end
+
+    should "not run the archival if active is false" do
+      archive_class = Undestroy::Test::Fixtures::Archive
+      ar_source = Undestroy::Test::Fixtures::ARFixture.new
+      subject.config.internals[:archive] = archive_class
+      subject.active = false
+      subject.before_destroy(ar_source)
+      assert_equal 0, archive_class.data[:calls].size
+    end
   end
 
   class PrefixTableNameMethod < Base
